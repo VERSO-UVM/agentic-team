@@ -1,6 +1,6 @@
 # Vermont Research Reviewer
 
-A dual-mode multi-agent review tool built on the Anthropic Claude API. Submit a research proposal or project outline and receive structured feedback from five Vermont agency expert reviewers simultaneously, synthesized into an actionable summary.
+A dual-mode multi-agent review tool built on the Anthropic Claude API. Submit a research proposal or project outline and receive structured feedback from expert reviewers simultaneously, synthesized into an actionable summary.
 
 Two audiences, one tool:
 - **Student mode** — scaffolded feedback for ORCA student interns at UVM
@@ -10,7 +10,7 @@ Two audiences, one tool:
 
 ## What It Does
 
-Each analysis runs five parallel Claude API calls — one per reviewer role — each grounded in a real Vermont agency reference document. A sixth synthesis call consolidates the feedback into a structured summary tuned to the selected mode.
+Each analysis runs one parallel Claude API call per selected reviewer role, each grounded in an agency or program reference document. A final synthesis call consolidates the feedback into a structured summary tuned to the selected mode.
 
 ### Reviewer Roles
 
@@ -21,10 +21,14 @@ Each analysis runs five parallel Claude API calls — one per reviewer role — 
 | **VT Agency of Natural Resources (ANR)** | Wildlife habitat, biodiversity, rare species, forest ecology, environmental justice |
 | **VT Dept of Health (VDH)** | Human subjects, HIPAA, health data access, health equity |
 | **VT Agency of Agriculture, Food & Markets (AAFM)** | Required Agricultural Practices, farm engagement, water/ag nexus, food safety |
+| **NSF Program Officer** | Intellectual Merit, Broader Impacts, data management, EPSCoR, budget compliance |
+| **NIH Program Officer** | Review criteria, human subjects, rigor/reproducibility, Vermont health data risks |
+| **UVM IRB Specialist** | IRB classification, CITI training, consent, HIPAA/FERPA, data security |
+| **UVM Sponsored Research Officer** | OSP sign-off, F&A rates, Uniform Guidance, export control, subawards |
 
 Each role has two system prompt variants — same context document, different tone and framing depending on mode.
 
-Reviewers are individually selectable via checkboxes — run only the ones relevant to a given project.
+Reviewers are individually selectable via checkboxes — none are selected by default. Select at least one to run an analysis.
 
 ### Synthesis Output
 
@@ -49,7 +53,6 @@ Reviewers are individually selectable via checkboxes — run only the ones relev
 ```
 agentic-team/
 ├── app.py                        # Streamlit web UI (main entry point)
-├── jumpstart.py                  # Terminal test harness
 ├── requirements.txt
 ├── .env                          # Your API key (never commit this)
 ├── .env.example                  # Safe committed placeholder
@@ -60,7 +63,10 @@ agentic-team/
 │   ├── vt_anr_context.md
 │   ├── vt_health_context.md
 │   ├── vt_agriculture_context.md
-│   └── vt_digital_services_context.md
+│   ├── nsf_program_officer_context.md
+│   ├── nih_program_officer_context.md
+│   ├── uvm_irb_context.md
+│   └── uvm_sponsored_research_context.md
 ```
 
 ---
@@ -105,14 +111,6 @@ streamlit run app.py
 
 Opens at `http://localhost:8501`.
 
-### 5. Run the terminal test harness
-
-```bash
-python jumpstart.py
-```
-
-Edit the `problem` string in `jumpstart.py` to test different scenarios.
-
 ---
 
 ## Mode Selection
@@ -134,7 +132,7 @@ Model defaults change automatically with mode but can be overridden.
 |---|---|---|
 | Haiku (fast, low cost) | `claude-haiku-4-5-20251001` | Development, student mode |
 | Sonnet (balanced) | `claude-sonnet-4-6` | Default production use |
-| Opus (most capable) | `claude-opus-4-6` | High-stakes proposals |
+| Opus (most capable) | `claude-opus-4-7` | High-stakes proposals |
 
 **Student mode defaults:** Haiku for reviewers, Sonnet for synthesis.
 **Advisor mode defaults:** Sonnet for reviewers, Sonnet for synthesis.
@@ -153,8 +151,8 @@ Each reviewer role loads a markdown reference file from `persona_context/`. To i
 
 To add a new reviewer role:
 1. Create a new context file in `persona_context/`
-2. Add an entry to the `ROLES` dict in both `app.py` and `jumpstart.py` — include both `student` and `advisor` prompt variants
-3. The UI will automatically add a column for the new reviewer
+2. Add an entry to the `ROLES` dict in `app.py` — include both `student` and `advisor` prompt variants
+3. The UI will automatically render a checkbox for the new reviewer
 
 ---
 

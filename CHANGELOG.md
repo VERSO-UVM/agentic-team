@@ -186,10 +186,91 @@ Users can now tailor each run to the project type, reducing cost and improving s
 
 ---
 
+---
+
+## 2026-04-17 — Session 2: New Personas, Context Grounding, Prompt Caching, Download
+
+### New Reviewer Roles (4 added)
+
+Four research administration personas added to the `ROLES` dict, each with student and advisor variants:
+
+| Role | Focus |
+|---|---|
+| **NSF Program Officer** | Intellectual Merit / Broader Impacts, data management plan, EPSCoR positioning, budget compliance |
+| **NIH Program Officer** | Five review criteria, human subjects, rigor/reproducibility, Vermont health data re-identification risk |
+| **UVM IRB Specialist** | IRB classification, UVMClick submission, CITI training, consent elements, HIPAA/FERPA, data security |
+| **UVM Sponsored Research Officer** | OSP sign-off, F&A rates, Uniform Guidance (2 CFR 200), export control, subawards, VAES/EPSCoR rules |
+
+Context files created for all four under `persona_context/`.
+
+### Reviewer Selection UX Change
+
+Reviewer checkboxes changed from **all selected by default** to **none selected by default**, with a caption prompting users to select at least one. Run button remains disabled until at least one reviewer is chosen.
+
+### Bug Fixes
+
+- `claude-opus-4-6` replaced with `claude-opus-4-7` — the prior model ID was invalid and caused API errors
+- Removed `jumpstart.py` (terminal prototype), which was fully superseded by `app.py`. Updated `README.md` to remove all references.
+
+### Context Grounding Strategy
+
+Established a two-layer context system for each persona:
+
+- **Layer 1 — curated base file** (`persona_context/<role>_context.md`): stable conceptual framework, regulatory background, common issues. Maintained by hand.
+- **Layer 2 — sourced supplement** (`persona_context/<role>_supplement.md`): distilled from real primary sources (live URLs + PDFs). Higher specificity, lower token cost than raw dumps.
+
+Applied to UVM IRB Specialist as the proof of concept:
+- Fetched 4 UVM RPO pages; extracted 4 PDFs (`Top 10 Obstacles`, `Criteria for Approval`, `PI Checklist`, `Regulatory Essential Documents Binder`)
+- Distilled into `uvm_irb_supplement.md` (~1,200 words) — covers UVMClick system, the 7 approval criteria, the 10 common obstacles, the 17 consent elements, PI checklist key points, regulatory binder structure, CITI module requirements by researcher type
+
+`load_context()` updated to accept multiple filenames and join them — enabling any role to load a base file + supplement in one call.
+
+### Reusable Context Build Script
+
+`scripts/build_context.py` — command-line tool to regenerate any persona's supplement from primary sources:
+
+```bash
+python scripts/build_context.py \
+  --persona "NSF Program Officer" \
+  --urls https://nsf.gov/... \
+  --pdfs background_documents/grant_guide.pdf \
+  --output persona_context/nsf_supplement.md \
+  --token-target 2000
+```
+
+Fetches URLs (BeautifulSoup), extracts PDFs (pypdf), calls Claude to distill into ~2,000-token structured markdown. Run when policies change.
+
+Added `pypdf` to `requirements.txt`.
+
+### Prompt Caching
+
+All reviewer API calls now pass the system prompt with `cache_control: {"type": "ephemeral"}`. Since context files don't change between calls within a session, each reviewer's system prompt is cached after the first call.
+
+**Effect:** System prompt tokens cost ~0.1× on cache hits vs. full price. With 9 reviewers and ~3,000-token system prompts, this reduces system prompt costs by ~90% on repeated use.
+
+### Download Feature
+
+A **Download Review (.txt)** button appears after every completed analysis. The file includes:
+- Mode, timestamp, and model info in the header
+- The original proposal text and any reference URLs
+- All selected reviewer responses (labelled)
+- The full synthesis
+
+File is named `research_review_YYYYMMDD_HHMM.txt`.
+
+### Design Principles Added
+
+- **Distill, don't dump.** Raw source material in the system prompt costs tokens and degrades quality due to "lost in the middle" attention effects. A curated 1,500-word supplement outperforms a 10-page raw dump.
+- **Token budget per context file: ~2,000–3,000 tokens.** Stays above the 1,024-token prompt cache minimum; stays below the quality degradation zone.
+- **Prompt caching is the primary cost lever.** Static system prompts cached at 1.25× write cost, read at 0.1× on subsequent calls. Silent but significant — verifiable via `usage.cache_read_input_tokens` in the API response.
+- **Build scripts, not one-time pastes.** `scripts/build_context.py` makes context refresh repeatable and reviewable rather than ad hoc.
+
+---
+
 ## Open Questions / Future Directions
 
 - [ ] Should roles be dynamically selected based on project type? (e.g., health project auto-routes to VDH, farm project auto-routes to AAFM)
 - [ ] Would a follow-up "ask a question" interface after the review be useful for students?
-- [ ] Are there additional Vermont agencies worth adding? (e.g., VT Agency of Transportation, VT Housing & Conservation Board)
+- [ ] Apply the two-layer context strategy to NSF, NIH, and Sponsored Research personas (supplement files from primary sources)
 - [ ] Should the WWTP Operator role be preserved for infrastructure/water systems projects?
-- [ ] Prompt caching — context documents don't change between runs; caching could reduce costs ~90% on repeated use
+- [ ] Add .docx export option using python-docx for richer formatting (headers, sections, bold)

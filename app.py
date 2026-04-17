@@ -1,4 +1,5 @@
 import os
+import datetime
 import anthropic
 import requests
 import streamlit as st
@@ -21,7 +22,7 @@ CONTEXT_DIR = os.path.join(
 MODEL_OPTIONS = {
     "Haiku (fast, low cost)": "claude-haiku-4-5-20251001",
     "Sonnet (balanced)": "claude-sonnet-4-6",
-    "Opus (most capable)": "claude-opus-4-6",
+    "Opus (most capable)": "claude-opus-4-7",
 }
 
 # Default models per mode
@@ -31,10 +32,39 @@ MODE_DEFAULTS = {
 }
 
 
-def load_context(filename):
-    path = os.path.join(CONTEXT_DIR, filename)
-    with open(path, encoding="utf-8", errors="replace") as f:
-        return f.read()
+def build_download_text(mode, problem, url_input, responses, synthesis_text,
+                        reviewer_model, synthesis_model):
+    divider = "=" * 70
+    thin = "-" * 70
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    lines = [
+        divider,
+        f"  VERMONT RESEARCH REVIEWER — {mode.upper()} MODE",
+        f"  Generated: {now}",
+        f"  Reviewer model: {reviewer_model}  |  Synthesis model: {synthesis_model}",
+        divider,
+        "",
+        "PROPOSAL / PROJECT DESCRIPTION",
+        thin,
+        problem.strip(),
+    ]
+    if url_input and url_input.strip():
+        lines += ["", "REFERENCE URLS", thin, url_input.strip()]
+    lines += ["", "", divider, "INDIVIDUAL REVIEWER FEEDBACK", divider]
+    for role, text in responses.items():
+        lines += ["", role.upper(), thin, text.strip(), ""]
+    lines += [divider, "SYNTHESIS", divider, "", synthesis_text.strip(), ""]
+    return "\n".join(lines)
+
+
+def load_context(*filenames):
+    """Load one or more context files and join them."""
+    parts = []
+    for filename in filenames:
+        path = os.path.join(CONTEXT_DIR, filename)
+        with open(path, encoding="utf-8", errors="replace") as f:
+            parts.append(f.read())
+    return "\n\n---\n\n".join(parts)
 
 
 def fetch_url(url):
@@ -184,6 +214,118 @@ ROLES = {
             + load_context("vt_agriculture_context.md")
         ),
     },
+    "NSF Program Officer": {
+        "context": load_context("nsf_program_officer_context.md"),
+        "student": (
+            "You are an NSF Program Officer reviewing a student's "
+            "research project proposal. Evaluate whether it has the "
+            "potential to meet NSF's two core review criteria: "
+            "Intellectual Merit and Broader Impacts. Explain what those "
+            "mean in plain language. Flag missing elements — data "
+            "management plan, IRB requirements, scope issues. Help the "
+            "student understand what makes NSF-worthy research and "
+            "where this proposal falls short or shows promise.\n\n"
+            "Reference:\n\n"
+            + load_context("nsf_program_officer_context.md")
+        ),
+        "advisor": (
+            "You are an NSF Program Officer conducting a critical "
+            "pre-submission review of a proposal. Assess Intellectual "
+            "Merit and Broader Impacts rigorously. Flag weaknesses a "
+            "review panel will penalize: underdeveloped Broader Impacts, "
+            "scope mismatch, weak preliminary data, missing data "
+            "management plan, budget compliance issues, or F&A concerns. "
+            "Note any EPSCoR positioning opportunities. Assume the "
+            "reader understands the NSF merit review process.\n\n"
+            "Reference:\n\n"
+            + load_context("nsf_program_officer_context.md")
+        ),
+    },
+    "NIH Program Officer": {
+        "context": load_context("nih_program_officer_context.md"),
+        "student": (
+            "You are an NIH Program Officer reviewing a student research "
+            "proposal. Evaluate it against NIH's five core review "
+            "criteria: Significance, Investigators, Innovation, "
+            "Approach, and Environment. Explain what each criterion "
+            "means in practice. Flag human subjects requirements, data "
+            "sharing obligations, and rigor/reproducibility gaps. Help "
+            "the student understand what NIH-funded research looks like "
+            "and what they would need to address.\n\n"
+            "Reference:\n\n"
+            + load_context("nih_program_officer_context.md")
+        ),
+        "advisor": (
+            "You are an NIH Program Officer conducting a critical "
+            "pre-submission review. Assess all five review criteria and "
+            "flag fatal weaknesses: approach lacks rigor or contingency "
+            "plans, human subjects section is incomplete, data sharing "
+            "plan missing or insufficient, team lacks key expertise, "
+            "scope exceeds budget. Note relevant IC alignment and any "
+            "Vermont-specific re-identification risks in health data. "
+            "Assume the reader understands NIH peer review.\n\n"
+            "Reference:\n\n"
+            + load_context("nih_program_officer_context.md")
+        ),
+    },
+    "UVM IRB Specialist": {
+        "context": load_context("uvm_irb_context.md", "uvm_irb_supplement.md"),
+        "student": (
+            "You are a UVM IRB compliance specialist. Evaluate this "
+            "student research proposal for human subjects requirements. "
+            "Determine whether IRB review is required, and if so, what "
+            "level (exempt, expedited, or full board). Explain what IRB "
+            "is and why it exists. Walk the student through what they "
+            "would need to submit through UVMClick — CITI training, "
+            "consent forms, protocol — and how long it takes. Flag HIPAA "
+            "and FERPA issues if the proposal involves health or student "
+            "data. Reference the Top 10 obstacles when relevant.\n\n"
+            "Reference:\n\n"
+            + load_context("uvm_irb_context.md", "uvm_irb_supplement.md")
+        ),
+        "advisor": (
+            "You are a senior UVM IRB compliance officer reviewing a "
+            "proposal. Determine IRB classification under the 7 approval "
+            "criteria (45 CFR 46.111) and flag risk factors: sensitive "
+            "populations, re-identification risk in Vermont's small "
+            "population, HIPAA applicability, FERPA intersections, "
+            "secondary data use, and community-based research "
+            "complexities. Flag UVMClick submission requirements, "
+            "regulatory binder obligations, and any DUA or MTA needs. "
+            "Identify if Single IRB reliance agreements are needed. "
+            "Assume reader knows research regulations.\n\n"
+            "Reference:\n\n"
+            + load_context("uvm_irb_context.md", "uvm_irb_supplement.md")
+        ),
+    },
+    "UVM Sponsored Research Officer": {
+        "context": load_context("uvm_sponsored_research_context.md"),
+        "student": (
+            "You are a UVM Office of Sponsored Programs (OSP) officer. "
+            "Review this student research proposal from the perspective "
+            "of institutional compliance and grant administration. "
+            "Explain what OSP does and why institutional sign-off "
+            "matters. Flag budget issues, indirect cost requirements, "
+            "conflict of interest disclosure needs, and any export "
+            "control concerns. Help the student understand the "
+            "administrative steps required before a proposal can go out "
+            "the door.\n\n"
+            "Reference:\n\n"
+            + load_context("uvm_sponsored_research_context.md")
+        ),
+        "advisor": (
+            "You are a senior UVM Sponsored Research officer reviewing "
+            "a proposal for institutional compliance. Flag: budget "
+            "allowability and allocability issues under 2 CFR 200, F&A "
+            "rate application, unauthorized cost sharing, export control "
+            "triggers, conflict of interest disclosure gaps, subaward "
+            "compliance, and any effort commitment concerns. Note if "
+            "USDA land-grant or EPSCoR rules apply. Assume the reader "
+            "understands sponsored research administration.\n\n"
+            "Reference:\n\n"
+            + load_context("uvm_sponsored_research_context.md")
+        ),
+    },
 }
 
 # --- Page layout ---
@@ -202,7 +344,7 @@ with st.sidebar:
         ),
     )
 
-    st.divider()
+    st.markdown("---")
     st.header("Model Settings")
     model_keys = list(MODEL_OPTIONS.keys())
     reviewer_label = st.selectbox(
@@ -269,9 +411,10 @@ with col_input:
 
 with col_reviewers:
     st.markdown("**Select Reviewers**")
+    st.caption("Select at least one reviewer to run.")
     selected_roles = {}
     for role in ROLES:
-        selected_roles[role] = st.checkbox(role, value=True)
+        selected_roles[role] = st.checkbox(role, value=False)
 
 active_roles = {r: v for r, v in ROLES.items() if selected_roles[r]}
 
@@ -323,7 +466,11 @@ if st.button(
                     response = client.messages.create(
                         model=REVIEWER_MODEL,
                         max_tokens=700,
-                        system=role_data[prompt_key],
+                        system=[{
+                            "type": "text",
+                            "text": role_data[prompt_key],
+                            "cache_control": {"type": "ephemeral"},
+                        }],
                         messages=[
                             {"role": "user", "content": user_message}
                         ],
@@ -395,4 +542,25 @@ if st.button(
             max_tokens=2000,
             messages=[{"role": "user", "content": synthesis_prompt}],
         )
-        st.markdown(final.content[0].text)
+        synthesis_text = final.content[0].text
+        st.markdown(synthesis_text)
+
+    st.markdown("---")
+    filename = (
+        f"research_review_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.txt"
+    )
+    download_text = build_download_text(
+        mode=mode,
+        problem=problem,
+        url_input=url_input,
+        responses=responses,
+        synthesis_text=synthesis_text,
+        reviewer_model=REVIEWER_MODEL,
+        synthesis_model=SYNTHESIS_MODEL,
+    )
+    st.download_button(
+        label="Download Review (.txt)",
+        data=download_text,
+        file_name=filename,
+        mime="text/plain",
+    )
