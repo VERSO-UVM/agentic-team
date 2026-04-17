@@ -111,6 +111,20 @@ streamlit run app.py
 
 Opens at `http://localhost:8501`.
 
+### 5. Stop the server
+
+Press **Ctrl+C** in the terminal where Streamlit is running.
+
+If the process is stuck or running in the background:
+
+```bash
+# Find the process
+lsof -i :8501
+
+# Kill it by PID
+kill <PID>
+```
+
 ---
 
 ## Mode Selection
