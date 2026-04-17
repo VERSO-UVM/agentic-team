@@ -89,7 +89,6 @@ def fetch_url(url):
 
 ROLES = {
     "Research Methodologist": {
-        "context": load_context("research_methodologist_context.md"),
         "student": (
             "You are an experienced research methodologist reviewing a "
             "student intern's project proposal. Evaluate whether the "
@@ -113,7 +112,6 @@ ROLES = {
         ),
     },
     "VT Dept of Environmental Conservation": {
-        "context": load_context("vt_dec_context.md"),
         "student": (
             "You are a staff member at the Vermont Department of "
             "Environmental Conservation (DEC). Evaluate the proposal "
@@ -138,7 +136,6 @@ ROLES = {
         ),
     },
     "VT Agency of Natural Resources": {
-        "context": load_context("vt_anr_context.md"),
         "student": (
             "You are a staff member at the Vermont Agency of Natural "
             "Resources (ANR), focused on Fish & Wildlife and Forests, "
@@ -164,7 +161,6 @@ ROLES = {
         ),
     },
     "VT Dept of Health": {
-        "context": load_context("vt_health_context.md"),
         "student": (
             "You are a staff member at the Vermont Department of Health "
             "(VDH). Evaluate the proposal through the lens of public "
@@ -189,7 +185,6 @@ ROLES = {
         ),
     },
     "VT Agency of Agriculture": {
-        "context": load_context("vt_agriculture_context.md"),
         "student": (
             "You are a staff member at the Vermont Agency of Agriculture, "
             "Food & Markets (AAFM). Evaluate the proposal through the "
@@ -215,7 +210,6 @@ ROLES = {
         ),
     },
     "NSF Program Officer": {
-        "context": load_context("nsf_program_officer_context.md"),
         "student": (
             "You are an NSF Program Officer reviewing a student's "
             "research project proposal. Evaluate whether it has the "
@@ -242,7 +236,6 @@ ROLES = {
         ),
     },
     "NIH Program Officer": {
-        "context": load_context("nih_program_officer_context.md"),
         "student": (
             "You are an NIH Program Officer reviewing a student research "
             "proposal. Evaluate it against NIH's five core review "
@@ -269,7 +262,6 @@ ROLES = {
         ),
     },
     "UVM IRB Specialist": {
-        "context": load_context("uvm_irb_context.md", "uvm_irb_supplement.md"),
         "student": (
             "You are a UVM IRB compliance specialist. Evaluate this "
             "student research proposal for human subjects requirements. "
@@ -299,7 +291,6 @@ ROLES = {
         ),
     },
     "UVM Sponsored Research Officer": {
-        "context": load_context("uvm_sponsored_research_context.md"),
         "student": (
             "You are a UVM Office of Sponsored Programs (OSP) officer. "
             "Review this student research proposal from the perspective "
@@ -351,7 +342,7 @@ with st.sidebar:
         "Reviewer model",
         model_keys,
         index=MODE_DEFAULTS[mode]["reviewer"],
-        help="Used for each of the five expert reviewers.",
+        help="Used for each selected reviewer.",
     )
     synthesis_label = st.selectbox(
         "Synthesis model",
@@ -369,8 +360,8 @@ with st.sidebar:
 if mode == "Student":
     st.title("ORCA Student Research Project Reviewer")
     st.caption(
-        "Paste your project outline below. Five expert reviewers will "
-        "analyze it in parallel, then a facilitator synthesizes the key "
+        "Paste your project outline below. Select reviewers on the right, "
+        "then run to get parallel expert feedback synthesized into key "
         "risks, compliance steps, and questions to bring to your advisor."
     )
     input_label = "Describe your research project or proposal:"
@@ -386,8 +377,8 @@ else:
     st.title("Vermont Agency Proposal Analyzer")
     st.caption(
         "Paste a proposal, grant, or document below — or provide URLs. "
-        "Five Vermont agency reviewers will assess it in parallel. "
-        "The synthesis flags strategic risks, conflicts, and gaps."
+        "Select reviewers on the right and run to get parallel expert "
+        "feedback. The synthesis flags strategic risks, conflicts, and gaps."
     )
     input_label = "Paste proposal text or describe what you want analyzed:"
     input_placeholder = (
@@ -481,10 +472,11 @@ if st.button(
 
     if mode == "Student":
         st.subheader("Project Review Summary")
+        n = len(responses)
         synthesis_prompt = (
-            "You are a research coordinator helping a student intern "
-            "understand feedback on their ORCA project proposal. Five "
-            "expert reviewers have assessed the proposal. Synthesize "
+            f"You are a research coordinator helping a student intern "
+            f"understand feedback on their ORCA project proposal. {n} "
+            f"expert reviewer{'s' if n != 1 else ''} have assessed the proposal. Synthesize "
             "their feedback into a clear, actionable summary the student "
             "can immediately use.\n\n"
             "Structure your response exactly as follows:\n\n"
@@ -510,10 +502,11 @@ if st.button(
         )
     else:
         st.subheader("Analysis Summary")
+        n = len(responses)
         synthesis_prompt = (
-            "You are a senior policy analyst synthesizing expert agency "
-            "feedback on a proposal. Five Vermont agency reviewers have "
-            "assessed it. Produce a direct, senior-level summary.\n\n"
+            f"You are a senior policy analyst synthesizing expert agency "
+            f"feedback on a proposal. {n} reviewer{'s' if n != 1 else ''} have assessed it. "
+            "Produce a direct, senior-level summary.\n\n"
             "Structure your response exactly as follows:\n\n"
             "## Where Reviewers Agree\n"
             "Shared concerns or endorsements across multiple agencies.\n\n"
