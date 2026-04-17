@@ -27,8 +27,8 @@ MODEL_OPTIONS = {
 
 # Default models per mode
 MODE_DEFAULTS = {
-    "Student": {"reviewer": 0, "synthesis": 1},   # Haiku / Sonnet
-    "Advisor": {"reviewer": 1, "synthesis": 1},   # Sonnet / Sonnet
+    "Student": {"reviewer": 0, "synthesis": 1},            # Haiku / Sonnet
+    "Advisor/Researcher": {"reviewer": 1, "synthesis": 1}, # Sonnet / Sonnet
 }
 
 
@@ -261,6 +261,41 @@ ROLES = {
             + load_context("nih_program_officer_context.md")
         ),
     },
+    "Wellcome Program Officer": {
+        "student": (
+            "You are a Wellcome Trust Program Officer reviewing a student "
+            "research proposal. Evaluate it against Wellcome's core "
+            "criteria: Is the research bold (generates genuinely new "
+            "knowledge) and creative (develops new concepts, methods, or "
+            "combinations)? Explain what those terms mean in practice. "
+            "Flag eligibility hard stops — salary guarantee, contract "
+            "type, geographic eligibility. Point out missing or weak "
+            "sections: data management plan, ethics plan, budget "
+            "justification, sponsor/mentor quality, research culture "
+            "contribution. Help the student understand what Wellcome-"
+            "fundable research looks like and where this proposal falls "
+            "short or shows promise.\n\n"
+            "Reference:\n\n"
+            + load_context("wellcome_program_officer_context.md")
+        ),
+        "advisor": (
+            "You are a senior Wellcome Program Officer conducting a "
+            "critical pre-submission review. Assess the proposal against "
+            "all three Wellcome dimensions: research proposal (bold and "
+            "creative?), applicant track record and development "
+            "trajectory, and research environment quality. Flag hard "
+            "eligibility gates first (salary guarantee, contract type, "
+            "geography). Identify weaknesses a Wellcome advisory "
+            "committee will penalize: incremental framing, thin budget "
+            "justification, weak or absent data sharing plan, ethics "
+            "deferred, sponsor section inadequate, no articulation of "
+            "research culture contribution. Note LMIC access obligations "
+            "if relevant. Flag scope/feasibility mismatches. Assume "
+            "reader understands the Wellcome merit review process.\n\n"
+            "Reference:\n\n"
+            + load_context("wellcome_program_officer_context.md")
+        ),
+    },
     "UVM IRB Specialist": {
         "student": (
             "You are a UVM IRB compliance specialist. Evaluate this "
@@ -319,6 +354,29 @@ ROLES = {
     },
 }
 
+# --- Reviewer groupings ---
+ROLE_GROUPS = {
+    "UVM": [
+        "Research Methodologist",
+        "UVM IRB Specialist",
+        "UVM Sponsored Research Officer",
+    ],
+    "State of Vermont": [
+        "VT Dept of Environmental Conservation",
+        "VT Agency of Natural Resources",
+        "VT Dept of Health",
+        "VT Agency of Agriculture",
+    ],
+    "Community Organizations": [],
+    "Federal Agencies": [
+        "NSF Program Officer",
+        "NIH Program Officer",
+    ],
+    "Foundations": [
+        "Wellcome Program Officer",
+    ],
+}
+
 # --- Page layout ---
 
 st.set_page_config(page_title="Vermont Research Reviewer", layout="wide")
@@ -327,8 +385,8 @@ with st.sidebar:
     st.header("Mode")
     mode = st.radio(
         "Who is this for?",
-        ["Student", "Advisor"],
-        index=0,
+        ["Student", "Advisor/Researcher"],
+        index=1,
         help=(
             "Student: scaffolded feedback for ORCA interns. "
             "Advisor: direct critical analysis for proposal review."
@@ -373,7 +431,7 @@ if mode == "Student":
     button_label = "Review My Project"
     prompt_key = "student"
 
-else:
+else:  # Advisor/Researcher
     st.title("Vermont Agency Proposal Analyzer")
     st.caption(
         "Paste a proposal, grant, or document below — or provide URLs. "
@@ -404,8 +462,13 @@ with col_reviewers:
     st.markdown("**Select Reviewers**")
     st.caption("Select at least one reviewer to run.")
     selected_roles = {}
-    for role in ROLES:
-        selected_roles[role] = st.checkbox(role, value=False)
+    for group, roles in ROLE_GROUPS.items():
+        if not roles:
+            continue
+        st.markdown(f"*{group}*")
+        for role in roles:
+            selected_roles[role] = st.checkbox(role, value=False)
+        st.markdown("")
 
 active_roles = {r: v for r, v in ROLES.items() if selected_roles[r]}
 
