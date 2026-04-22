@@ -23,6 +23,7 @@ Each analysis runs one parallel Claude API call per selected reviewer role, each
 | **VT Agency of Agriculture, Food & Markets (AAFM)** | Required Agricultural Practices, farm engagement, water/ag nexus, food safety |
 | **NSF Program Officer** | Intellectual Merit, Broader Impacts, data management, EPSCoR, budget compliance |
 | **NIH Program Officer** | Review criteria, human subjects, rigor/reproducibility, Vermont health data risks |
+| **Sloan Foundation Program Officer** | Program fit, scientific rigor, public good value, measurable outcomes, LOI-first process, budget-scope alignment |
 | **Wellcome Program Officer** | Bold/creative research criteria, eligibility gates, data sharing mandate, LMIC access, budget justification |
 | **UVM IRB Specialist** | IRB classification, CITI training, consent, HIPAA/FERPA, data security |
 | **UVM Sponsored Research Officer** | OSP sign-off, F&A rates, Uniform Guidance, export control, subawards |
@@ -66,6 +67,7 @@ agentic-team/
 │   ├── vt_agriculture_context.md
 │   ├── nsf_program_officer_context.md
 │   ├── nih_program_officer_context.md
+│   ├── sloan_program_officer_context.md
 │   ├── wellcome_program_officer_context.md
 │   ├── uvm_irb_context.md
 │   └── uvm_sponsored_research_context.md

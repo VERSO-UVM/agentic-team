@@ -267,6 +267,49 @@ File is named `research_review_YYYYMMDD_HHMM.txt`.
 
 ---
 
+## 2026-04-17 — Session 3: Foundation Personas, Reviewer Grouping, UI Refinements, Bug Fixes
+
+### New Reviewer Roles (2 added)
+
+| Role | Context Source | Focus |
+|---|---|---|
+| **Wellcome Program Officer** | 15 pages fetched from wellcome.org | Bold/creative criteria, eligibility hard gates (salary guarantee, geography), data sharing mandate, LMIC access obligations, budget justification, interview process |
+| **Sloan Foundation Program Officer** | 12 pages fetched from sloan.org | Program fit (LOI-first, unsolicited rejected), scientific rigor/impartiality, measurable outcomes, milestone clarity, quarterly approval timing for grants >$250K |
+
+Both roles have student and advisor prompt variants and are grouped under **Foundations** in the reviewer panel.
+
+### Reviewer Panel Grouping
+
+Reviewers now render under labeled category headers instead of a flat list:
+
+| Group | Roles |
+|---|---|
+| **UVM** | Research Methodologist, UVM IRB Specialist, UVM Sponsored Research Officer |
+| **State of Vermont** | VT DEC, VT ANR, VT Dept of Health, VT Agency of Agriculture |
+| **Community Organizations** | *(empty — reserved for future roles)* |
+| **Federal Agencies** | NSF Program Officer, NIH Program Officer |
+| **Foundations** | Sloan Foundation Program Officer, Wellcome Program Officer |
+
+Implemented via a `ROLE_GROUPS` dict in `app.py`; adding a new role to a group only requires adding its name to the list.
+
+### Mode Rename and Default Change
+
+- "Advisor" renamed to **"Advisor/Researcher"**
+- Default mode changed from Student to **Advisor/Researcher**
+- `MODE_DEFAULTS` dict updated to match new label
+
+### Bug Fixes
+
+Three issues identified and fixed during a full code review:
+
+1. **Dead `"context"` key removed from all 9 `ROLES` entries.** Each entry had a `"context"` key that loaded context files at startup but was never referenced at runtime — the prompts call `load_context()` directly. Caused every context file to be read twice at startup with no benefit.
+
+2. **Hardcoded "Five reviewers" text replaced with dynamic counts.** The sidebar help text, both mode captions, and both synthesis prompts hardcoded "Five expert reviewers" even though the tool now has 10 selectable roles in any combination. Replaced with `f"{n} reviewer{'s' if n != 1 else ''}"` using `len(responses)` at synthesis time.
+
+3. **`st.divider()` replaced with `st.markdown("---")`** (carried forward from Session 2) — resolves `AttributeError` on older Streamlit versions in Anaconda environments.
+
+---
+
 ## Open Questions / Future Directions
 
 - [ ] Should roles be dynamically selected based on project type? (e.g., health project auto-routes to VDH, farm project auto-routes to AAFM)
